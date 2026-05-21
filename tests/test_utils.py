@@ -1,5 +1,5 @@
 import unittest
-from src.utils import normalize_title, parse_float, parse_int
+from src.utils import normalize_title, parse_float, parse_int, sanitize_string
 
 
 class TestNormalizeTitle(unittest.TestCase):
@@ -66,6 +66,32 @@ class TestParseInt(unittest.TestCase):
 
     def test_zero_is_valid(self):
         self.assertEqual(parse_int("0", "y", "src"), 0)
+
+
+class TestSanitizeString(unittest.TestCase):
+    def test_clean_title_unchanged(self):
+        self.assertEqual(sanitize_string("Inception"), "Inception")
+
+    def test_equals_prefix_neutralised(self):
+        self.assertEqual(sanitize_string("=CMD(evil)"), "'=CMD(evil)")
+
+    def test_plus_prefix_neutralised(self):
+        self.assertEqual(sanitize_string("+1"), "'+1")
+
+    def test_minus_prefix_neutralised(self):
+        self.assertEqual(sanitize_string("-DROP TABLE"), "'-DROP TABLE")
+
+    def test_at_prefix_neutralised(self):
+        self.assertEqual(sanitize_string("@SUM(A1)"), "'@SUM(A1)")
+
+    def test_tab_prefix_neutralised(self):
+        self.assertEqual(sanitize_string("\t=evil"), "'\t=evil")
+
+    def test_empty_string_unchanged(self):
+        self.assertEqual(sanitize_string(""), "")
+
+    def test_middle_formula_char_unchanged(self):
+        self.assertEqual(sanitize_string("The = Movie"), "The = Movie")
 
 
 if __name__ == "__main__":

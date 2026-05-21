@@ -3,6 +3,16 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# Characters that trigger formula execution in spreadsheet applications (Excel, Google Sheets).
+_FORMULA_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
+
+
+def sanitize_string(value: str) -> str:
+    """Neutralise CSV/spreadsheet formula injection by prepending a single quote."""
+    if value.startswith(_FORMULA_PREFIXES):
+        return "'" + value
+    return value
+
 
 def normalize_title(title: str) -> str:
     return title.strip().lower()

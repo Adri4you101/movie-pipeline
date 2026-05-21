@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 from src.models import MovieRecord
 from src.providers.base import Provider
-from src.utils import parse_int, normalize_title
+from src.utils import parse_int, normalize_title, sanitize_string
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class BoxOfficeMetricsProvider(Provider):
         return result
 
     def _parse_box_office_row(self, row: dict, label: str) -> Optional[dict]:
-        title = row.get('film_name', '').strip()
+        title = sanitize_string(row.get('film_name', '').strip())
         if not title:
             return None
         year = parse_int(row.get('year_of_release'), 'year_of_release', f'BoxOfficeMetrics/{label}')
@@ -78,7 +78,7 @@ class BoxOfficeMetricsProvider(Provider):
         return result
 
     def _parse_financials_row(self, row: dict) -> Optional[dict]:
-        title = row.get('film_name', '').strip()
+        title = sanitize_string(row.get('film_name', '').strip())
         if not title:
             return None
         year = parse_int(row.get('year_of_release'), 'year_of_release', 'BoxOfficeMetrics/financials')

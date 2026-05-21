@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 from src.models import MovieRecord
 from src.providers.base import Provider
-from src.utils import parse_float, parse_int
+from src.utils import parse_float, parse_int, sanitize_string
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class CriticAggProvider(Provider):
             )
 
     def _parse_row(self, row: dict) -> Optional[MovieRecord]:
-        title = row.get('movie_title', '').strip()
+        title = sanitize_string(row.get('movie_title', '').strip())
         if not title:
             logger.warning("CriticAggProvider: skipping row with empty title: %s", row)
             return None

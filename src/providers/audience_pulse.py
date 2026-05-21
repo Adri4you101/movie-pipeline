@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 from src.models import MovieRecord
 from src.providers.base import Provider
-from src.utils import parse_float, parse_int
+from src.utils import parse_float, parse_int, sanitize_string
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class AudiencePulseProvider(Provider):
         if not title or not str(title).strip():
             logger.warning("AudiencePulseProvider: skipping entry with empty title: %r", entry)
             return None
-        title = str(title).strip()
+        title = sanitize_string(str(title).strip())
 
         year = parse_int(entry.get('year'), 'year', 'AudiencePulseProvider')
         if year is None:
