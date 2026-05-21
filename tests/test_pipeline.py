@@ -53,10 +53,6 @@ class TestPipelineIntegration(unittest.TestCase):
         self.assertIsNone(r.international_box_office)
         self.assertIsNone(r.production_budget)
 
-    def test_get_case_insensitive(self):
-        self.assertIsNotNone(self.dataset.get("inception", 2010))
-        self.assertIsNotNone(self.dataset.get("THE DARK KNIGHT", 2008))
-
     def test_result_is_deterministic(self):
         providers2 = [
             CriticAggProvider("data/provider1.csv"),

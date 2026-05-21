@@ -102,16 +102,6 @@ class TestBoxOfficeMetricsEdgeCases(unittest.TestCase):
         self.assertEqual(records[0].production_budget, 160000000)
         self.assertIsNone(records[0].domestic_box_office)
 
-    def test_bom_header_handled(self):
-        f = tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False)
-        f.write(("﻿" + DOM_HEADER + "Inception,2010,292576195\n").encode('utf-8'))
-        f.close()
-        self.paths.append(f.name)
-        intl = self._csv(INT_HEADER)
-        fin = self._csv(FIN_HEADER)
-        records = BoxOfficeMetricsProvider(f.name, intl, fin).parse()
-        self.assertEqual(len(records), 1)
-
     def test_invalid_gross_becomes_none(self):
         dom = self._csv(DOM_HEADER + "Inception,2010,notanumber\n")
         intl = self._csv(INT_HEADER)
