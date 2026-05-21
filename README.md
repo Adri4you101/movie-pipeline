@@ -99,6 +99,36 @@ movie-pipeline/
 
 **Computed field.** `MovieRecord.worldwide_box_office` is a `@property` — it returns `domestic + international` only when both are present, otherwise `None`. No storage, no sync issues.
 
+## Handling schema changes
+
+Each provider declares its expected schema as frozenset class constants:
+
+```python
+class CriticAggProvider(Provider):
+    _REQUIRED_COLUMNS = frozenset({'movie_title', 'release_year'})
+    _OPTIONAL_COLUMNS = frozenset({'critic_score_percentage', 'top_critic_score', ...})
+```
+
+These are validated at parse time before any row is processed:
+
+| Situation | Behaviour |
+|---|---|
+| Required column renamed or removed | `ValueError` with the missing column name — fails fast, no silent data loss |
+| Optional column renamed or removed | `WARNING` log entry — pipeline continues, affected fields become `None` |
+| New column added | Silently ignored |
+| Column type changed | Absorbed by `parse_int` / `parse_float` — bad values become `None` with a warning |
+
+**CSV vs JSON.** CSV providers raise `ValueError` on a missing required column because the header row is an explicit schema declaration — if `movie_title` is gone, every row will silently produce no title and the dataset will be empty. JSON providers only warn: JSON has no header row, so a missing key in one entry is more likely bad data than a schema change, and per-entry checks already handle skipping it.
+
+**Adapting to a schema change** is a one-line fix in the provider:
+
+```python
+# provider renamed movie_title → film_title
+title = sanitize_string(row.get('film_title', '').strip())
+```
+
+Update `_REQUIRED_COLUMNS` to match and the validation stays accurate.
+
 ## Adding a new provider
 
 1. Create `src/providers/my_provider.py`:
