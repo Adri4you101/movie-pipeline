@@ -1,3 +1,5 @@
+"""Provider for AudiencePulse — bi-weekly JSON of audience ratings and box office."""
+
 import json
 import logging
 from typing import Optional
@@ -9,10 +11,36 @@ logger = logging.getLogger(__name__)
 
 
 class AudiencePulseProvider(Provider):
+    """Reads audience rating and box office data from an AudiencePulse JSON file.
+
+    The file must be a JSON array where each element is an object with the keys:
+        title, year, audience_average_score, total_audience_ratings,
+        domestic_box_office_gross
+
+    Note: ``year`` is supplied as a string in this source ("2010") and is cast to
+    int during parsing. ``domestic_box_office_gross`` is stored in the
+    ``domestic_box_office_audience`` field to distinguish it from the same figure
+    reported by BoxOfficeMetrics.
+
+    Entries are skipped if ``title`` is empty/whitespace or ``year`` cannot be
+    parsed. All other numeric fields degrade gracefully to None on bad input.
+
+    Args:
+        file_path: Path to the provider2.json file.
+    """
+
     def __init__(self, file_path: str):
         self.file_path = file_path
 
     def parse(self) -> list[MovieRecord]:
+        """Parse the JSON file and return one MovieRecord per valid entry.
+
+        Returns:
+            List of MovieRecord objects with audience-score fields populated.
+
+        Raises:
+            FileNotFoundError: If ``file_path`` does not exist.
+        """
         try:
             with open(self.file_path, encoding='utf-8') as f:
                 data = json.load(f)
@@ -28,6 +56,7 @@ class AudiencePulseProvider(Provider):
         return [r for r in (self._parse_entry(e) for e in data) if r is not None]
 
     def _parse_entry(self, entry: dict) -> Optional[MovieRecord]:
+        """Convert a single JSON object into a MovieRecord, or None if invalid."""
         if not isinstance(entry, dict):
             logger.warning("AudiencePulseProvider: skipping non-dict entry: %r", entry)
             return None
