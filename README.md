@@ -44,7 +44,7 @@ Expected output:
   ...
 ```
 
-## Querying the dataset
+## Querying the dataset (for data science teams)
 
 The pipeline returns a `UnifiedDataset` that can be queried directly in Python:
 
