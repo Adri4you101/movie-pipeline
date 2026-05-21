@@ -128,6 +128,20 @@ class TestCriticAggEdgeCases(unittest.TestCase):
             CriticAggProvider("/nonexistent/path.csv").parse()
         self.assertIn("/nonexistent/path.csv", str(ctx.exception))
 
+    def test_missing_required_column_raises_value_error(self):
+        self.path = write_temp_csv("film_title,release_year,critic_score_percentage\n"
+                                   "Inception,2010,87\n")
+        with self.assertRaises(ValueError) as ctx:
+            CriticAggProvider(self.path).parse()
+        self.assertIn("movie_title", str(ctx.exception))
+
+    def test_missing_optional_column_logs_warning(self):
+        self.path = write_temp_csv("movie_title,release_year\nInception,2010\n")
+        with self.assertLogs("src.providers.critic_agg", level="WARNING") as cm:
+            records = CriticAggProvider(self.path).parse()
+        self.assertEqual(len(records), 1)
+        self.assertTrue(any("missing optional columns" in line for line in cm.output))
+
 
 if __name__ == "__main__":
     unittest.main()

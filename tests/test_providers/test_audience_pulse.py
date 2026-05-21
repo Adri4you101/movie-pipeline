@@ -129,6 +129,19 @@ class TestAudiencePulseEdgeCases(unittest.TestCase):
             AudiencePulseProvider("/nonexistent/path.json").parse()
         self.assertIn("/nonexistent/path.json", str(ctx.exception))
 
+    def test_missing_required_key_logs_warning(self):
+        self.path = write_temp_json([{"film": "Inception", "year": "2010"}])
+        with self.assertLogs("src.providers.audience_pulse", level="WARNING") as cm:
+            AudiencePulseProvider(self.path).parse()
+        self.assertTrue(any("schema change" in line for line in cm.output))
+
+    def test_missing_optional_key_logs_warning(self):
+        self.path = write_temp_json([{"title": "Inception", "year": "2010"}])
+        with self.assertLogs("src.providers.audience_pulse", level="WARNING") as cm:
+            records = AudiencePulseProvider(self.path).parse()
+        self.assertEqual(len(records), 1)
+        self.assertTrue(any("missing optional keys" in line for line in cm.output))
+
 
 if __name__ == "__main__":
     unittest.main()

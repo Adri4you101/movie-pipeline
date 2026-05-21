@@ -22,12 +22,21 @@ class AudiencePulseProvider(Provider):
     ``domestic_box_office_audience`` field to distinguish it from the same figure
     reported by BoxOfficeMetrics.
 
+    Schema validation is performed against the first entry in the array. Required
+    keys missing from that entry raise ValueError immediately; missing optional
+    keys emit a warning.
+
     Entries are skipped if ``title`` is empty/whitespace or ``year`` cannot be
     parsed. All other numeric fields degrade gracefully to None on bad input.
 
     Args:
         file_path: Path to the provider2.json file.
     """
+
+    _REQUIRED_COLUMNS = frozenset({'title', 'year'})
+    _OPTIONAL_COLUMNS = frozenset({
+        'audience_average_score', 'total_audience_ratings', 'domestic_box_office_gross'
+    })
 
     def __init__(self, file_path: str):
         self.file_path = file_path
@@ -40,6 +49,7 @@ class AudiencePulseProvider(Provider):
 
         Raises:
             FileNotFoundError: If ``file_path`` does not exist.
+            ValueError: If any required key is absent from the first entry.
         """
         try:
             with open(self.file_path, encoding='utf-8') as f:
@@ -53,7 +63,32 @@ class AudiencePulseProvider(Provider):
             logger.warning("AudiencePulseProvider: expected JSON array, got %s", type(data).__name__)
             return []
 
+        first = next((e for e in data if isinstance(e, dict)), None)
+        if first is not None:
+            self._validate_columns(set(first.keys()))
+
         return [r for r in (self._parse_entry(e) for e in data) if r is not None]
+
+    def _validate_columns(self, keys: set) -> None:
+        """Warn if required or optional keys are absent from the first entry.
+
+        JSON has no header row — each entry is self-describing, so missing keys
+        in one entry may be bad data rather than a schema change. Warnings are
+        emitted either way; per-entry checks handle skipping invalid records.
+        """
+        missing_required = self._REQUIRED_COLUMNS - keys
+        if missing_required:
+            logger.warning(
+                "AudiencePulseProvider: first entry missing expected keys %s — "
+                "possible schema change",
+                missing_required,
+            )
+        missing_optional = self._OPTIONAL_COLUMNS - keys
+        if missing_optional:
+            logger.warning(
+                "AudiencePulseProvider: missing optional keys (fields will be None): %s",
+                missing_optional,
+            )
 
     def _parse_entry(self, entry: dict) -> Optional[MovieRecord]:
         """Convert a single JSON object into a MovieRecord, or None if invalid."""

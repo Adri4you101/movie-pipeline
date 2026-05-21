@@ -25,6 +25,11 @@ class CriticAggProvider(Provider):
         file_path: Path to the provider1.csv file.
     """
 
+    _REQUIRED_COLUMNS = frozenset({'movie_title', 'release_year'})
+    _OPTIONAL_COLUMNS = frozenset({
+        'critic_score_percentage', 'top_critic_score', 'total_critic_reviews_counted'
+    })
+
     def __init__(self, file_path: str):
         self.file_path = file_path
 
@@ -36,15 +41,32 @@ class CriticAggProvider(Provider):
 
         Raises:
             FileNotFoundError: If ``file_path`` does not exist.
+            ValueError: If any required column is absent from the CSV header.
         """
         try:
             with open(self.file_path, newline='', encoding='utf-8-sig') as f:
-                return [r for r in (self._parse_row(row)
-                                    for row in csv.DictReader(f))
+                reader = csv.DictReader(f)
+                if reader.fieldnames:
+                    self._validate_columns(set(reader.fieldnames))
+                return [r for r in (self._parse_row(row) for row in reader)
                         if r is not None]
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"CriticAggProvider: file not found: {self.file_path}"
+            )
+
+    def _validate_columns(self, headers: set) -> None:
+        """Raise ValueError if required columns are missing; warn for optional ones."""
+        missing_required = self._REQUIRED_COLUMNS - headers
+        if missing_required:
+            raise ValueError(
+                f"CriticAggProvider: missing required columns: {missing_required}"
+            )
+        missing_optional = self._OPTIONAL_COLUMNS - headers
+        if missing_optional:
+            logger.warning(
+                "CriticAggProvider: missing optional columns (fields will be None): %s",
+                missing_optional,
             )
 
     def _parse_row(self, row: dict) -> Optional[MovieRecord]:

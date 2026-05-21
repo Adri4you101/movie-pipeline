@@ -32,6 +32,10 @@ class BoxOfficeMetricsProvider(Provider):
         financials_path: Path to provider3_financials.csv.
     """
 
+    _REQUIRED_COLUMNS = frozenset({'film_name', 'year_of_release'})
+    _BOX_OFFICE_OPTIONAL_COLUMNS = frozenset({'box_office_gross_usd'})
+    _FINANCIALS_OPTIONAL_COLUMNS = frozenset({'production_budget_usd', 'marketing_spend_usd'})
+
     def __init__(self, domestic_path: str, international_path: str, financials_path: str):
         self.domestic_path = domestic_path
         self.international_path = international_path
@@ -46,6 +50,7 @@ class BoxOfficeMetricsProvider(Provider):
 
         Raises:
             FileNotFoundError: If any of the three CSV files does not exist.
+            ValueError: If any required column is absent from any CSV header.
         """
         domestic = self._read_box_office(self.domestic_path, 'domestic')
         international = self._read_box_office(self.international_path, 'international')
@@ -68,6 +73,20 @@ class BoxOfficeMetricsProvider(Provider):
             ))
         return records
 
+    def _validate_columns(self, headers: set, optional: frozenset, label: str) -> None:
+        """Raise ValueError if required columns are missing; warn for optional ones."""
+        missing_required = self._REQUIRED_COLUMNS - headers
+        if missing_required:
+            raise ValueError(
+                f"BoxOfficeMetricsProvider ({label}): missing required columns: {missing_required}"
+            )
+        missing_optional = optional - headers
+        if missing_optional:
+            logger.warning(
+                "BoxOfficeMetricsProvider (%s): missing optional columns (fields will be None): %s",
+                label, missing_optional,
+            )
+
     def _read_box_office(self, path: str, label: str) -> dict:
         """Read a domestic or international box office CSV into a keyed dict.
 
@@ -82,11 +101,16 @@ class BoxOfficeMetricsProvider(Provider):
 
         Raises:
             FileNotFoundError: If ``path`` does not exist.
+            ValueError: If any required column is absent from the header.
         """
         result = {}
         try:
             with open(path, newline='', encoding='utf-8-sig') as f:
-                for row in csv.DictReader(f):
+                reader = csv.DictReader(f)
+                self._validate_columns(
+                    set(reader.fieldnames or []), self._BOX_OFFICE_OPTIONAL_COLUMNS, label
+                )
+                for row in reader:
                     entry = self._parse_box_office_row(row, label)
                     if entry:
                         result[entry['key']] = entry
@@ -122,11 +146,16 @@ class BoxOfficeMetricsProvider(Provider):
 
         Raises:
             FileNotFoundError: If ``path`` does not exist.
+            ValueError: If any required column is absent from the header.
         """
         result = {}
         try:
             with open(path, newline='', encoding='utf-8-sig') as f:
-                for row in csv.DictReader(f):
+                reader = csv.DictReader(f)
+                self._validate_columns(
+                    set(reader.fieldnames or []), self._FINANCIALS_OPTIONAL_COLUMNS, 'financials'
+                )
+                for row in reader:
                     entry = self._parse_financials_row(row)
                     if entry:
                         result[entry['key']] = entry

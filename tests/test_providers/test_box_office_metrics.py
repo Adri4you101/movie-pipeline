@@ -132,6 +132,23 @@ class TestBoxOfficeMetricsEdgeCases(unittest.TestCase):
         years = {r.year for r in records}
         self.assertEqual(years, {2010, 2022})
 
+    def test_missing_required_column_raises_value_error(self):
+        dom = self._csv("movie_name,year_of_release,box_office_gross_usd\nInception,2010,100\n")
+        intl = self._csv(INT_HEADER)
+        fin = self._csv(FIN_HEADER)
+        with self.assertRaises(ValueError) as ctx:
+            BoxOfficeMetricsProvider(dom, intl, fin).parse()
+        self.assertIn("film_name", str(ctx.exception))
+
+    def test_missing_optional_column_logs_warning(self):
+        dom = self._csv("film_name,year_of_release\nInception,2010\n")
+        intl = self._csv(INT_HEADER)
+        fin = self._csv(FIN_HEADER)
+        with self.assertLogs("src.providers.box_office_metrics", level="WARNING") as cm:
+            records = BoxOfficeMetricsProvider(dom, intl, fin).parse()
+        self.assertEqual(len(records), 1)
+        self.assertTrue(any("missing optional columns" in line for line in cm.output))
+
 
 if __name__ == "__main__":
     unittest.main()
