@@ -87,6 +87,18 @@ class TestUnifiedDataset(unittest.TestCase):
         result.append(MovieRecord(title="Extra", year=2000))
         self.assertEqual(len(self.dataset.all()), 3)
 
+    def test_get_title_only_uses_title_index(self):
+        # Verifies the O(1) title-only path: same title, multiple years → lowest year
+        result = self.dataset.get("Inception")
+        self.assertIs(result, self.inception)  # 2010 < 2022
+
+    def test_get_title_only_single_entry(self):
+        result = self.dataset.get("The Dark Knight")
+        self.assertIs(result, self.dark_knight)
+
+    def test_get_title_only_unknown_returns_none(self):
+        self.assertIsNone(self.dataset.get("Unknown Movie"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -39,7 +39,7 @@ def merge(provider_results: list[list[MovieRecord]]) -> UnifiedDataset:
                 grouped[key] = MovieRecord(title=record.title, year=record.year)
             _apply_fields(grouped[key], record)
 
-    movies = sorted(grouped.values(), key=lambda m: (normalize_title(m.title), m.year))
+    movies = [grouped[k] for k in sorted(grouped.keys())]
     return UnifiedDataset(movies=movies)
 
 

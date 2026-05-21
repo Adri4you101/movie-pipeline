@@ -85,10 +85,13 @@ class UnifiedDataset:
 
     def __post_init__(self):
         self._index: dict[tuple[str, int], MovieRecord] = {}
+        self._title_index: dict[str, list[MovieRecord]] = {}
         for m in self.movies:
-            key = (normalize_title(m.title), m.year)
+            normalized = normalize_title(m.title)
+            key = (normalized, m.year)
             if key not in self._index:
                 self._index[key] = m
+            self._title_index.setdefault(normalized, []).append(m)
 
     def get(self, title: str, year: Optional[int] = None) -> Optional[MovieRecord]:
         """Look up a film by title and optional year.
@@ -96,6 +99,10 @@ class UnifiedDataset:
         Title matching is case-insensitive and whitespace-insensitive.
         If ``year`` is omitted and multiple films share the same normalized title,
         the one with the lowest year is returned.
+
+        Both lookup paths are O(1) on average: the full ``(title, year)`` index
+        handles exact lookups, and a secondary title-only index avoids scanning
+        all records when year is omitted.
 
         Args:
             title: Film title to look up (any casing, any surrounding whitespace).
@@ -107,8 +114,10 @@ class UnifiedDataset:
         normalized = normalize_title(title)
         if year is not None:
             return self._index.get((normalized, year))
-        matches = [m for (t, _), m in self._index.items() if t == normalized]
-        return min(matches, key=lambda m: m.year) if matches else None
+        candidates = self._title_index.get(normalized)
+        if not candidates:
+            return None
+        return min(candidates, key=lambda m: m.year)
 
     def all(self) -> list[MovieRecord]:
         """Return all movies in the dataset as a list.
