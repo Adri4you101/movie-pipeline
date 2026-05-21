@@ -44,6 +44,42 @@ Expected output:
   ...
 ```
 
+## Querying the dataset
+
+The pipeline returns a `UnifiedDataset` that can be queried directly in Python:
+
+```python
+from src.pipeline import Pipeline
+from src.providers.critic_agg import CriticAggProvider
+from src.providers.audience_pulse import AudiencePulseProvider
+from src.providers.box_office_metrics import BoxOfficeMetricsProvider
+
+dataset = Pipeline([
+    CriticAggProvider("data/provider1.csv"),
+    AudiencePulseProvider("data/provider2.json"),
+    BoxOfficeMetricsProvider(
+        "data/provider3_domestic.csv",
+        "data/provider3_international.csv",
+        "data/provider3_financials.csv",
+    ),
+]).run()
+
+# Look up a specific film
+movie = dataset.get("Inception", 2010)
+print(movie.critic_score_pct)       # 87.0
+print(movie.audience_avg_score)     # 9.1
+print(movie.worldwide_box_office)   # 828276195
+
+# Look up without year — returns the earliest match
+movie = dataset.get("Inception")
+
+# Iterate all films
+for movie in dataset.all():
+    print(movie.title, movie.year, movie.production_budget)
+```
+
+Title lookups are case-insensitive and whitespace-insensitive. Fields not supplied by any provider are `None`.
+
 ## Running the tests
 
 ```bash
