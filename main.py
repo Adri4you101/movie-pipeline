@@ -20,7 +20,7 @@ def main():
 
     try:
         dataset = Pipeline(providers).run()
-    except FileNotFoundError as e:
+    except (FileNotFoundError, ValueError) as e:
         logging.error("Pipeline aborted: %s", e)
         return
     except Exception as e:
@@ -35,24 +35,24 @@ def main():
         print(f"  {movie.title} ({movie.year})")
 
         if movie.critic_score_pct is not None:
-            reviews = f"  reviews: {movie.total_critic_reviews:,}" if movie.total_critic_reviews else ""
+            reviews = f"  reviews: {movie.total_critic_reviews:,}" if movie.total_critic_reviews is not None else ""
             print(f"    Critic score:      {movie.critic_score_pct}%  (top critic: {movie.top_critic_score}{reviews})")
         else:
             print( "    Critic score:      N/A")
 
         if movie.audience_avg_score is not None:
-            ratings = f"  (ratings: {movie.total_audience_ratings:,})" if movie.total_audience_ratings else ""
+            ratings = f"  (ratings: {movie.total_audience_ratings:,})" if movie.total_audience_ratings is not None else ""
             print(f"    Audience score:    {movie.audience_avg_score}{ratings}")
         else:
             print( "    Audience score:    N/A")
 
-        domestic = f"${movie.domestic_box_office:,}" if movie.domestic_box_office else "N/A"
-        worldwide = f"${movie.worldwide_box_office:,}" if movie.worldwide_box_office else "N/A"
+        domestic = f"${movie.domestic_box_office:,}" if movie.domestic_box_office is not None else "N/A"
+        worldwide = f"${movie.worldwide_box_office:,}" if movie.worldwide_box_office is not None else "N/A"
         print(f"    Domestic BO:       {domestic}")
         print(f"    Worldwide BO:      {worldwide}")
 
-        budget = f"${movie.production_budget:,}" if movie.production_budget else "N/A"
-        marketing = f"${movie.marketing_spend:,}" if movie.marketing_spend else "N/A"
+        budget = f"${movie.production_budget:,}" if movie.production_budget is not None else "N/A"
+        marketing = f"${movie.marketing_spend:,}" if movie.marketing_spend is not None else "N/A"
         print(f"    Budget:            {budget}  |  Marketing: {marketing}")
 
         print()

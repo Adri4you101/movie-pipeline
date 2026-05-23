@@ -49,7 +49,7 @@ class AudiencePulseProvider(Provider):
 
         Raises:
             FileNotFoundError: If ``file_path`` does not exist.
-            ValueError: If any required key is absent from the first entry.
+            ValueError: If the file contains invalid JSON.
         """
         try:
             with open(self.file_path, encoding='utf-8') as f:
@@ -57,6 +57,10 @@ class AudiencePulseProvider(Provider):
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"AudiencePulseProvider: file not found: {self.file_path}"
+            )
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f"AudiencePulseProvider: invalid JSON in {self.file_path}: {e}"
             )
 
         if not isinstance(data, list):
